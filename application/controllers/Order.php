@@ -18,7 +18,17 @@ class Order extends Application {
     // start a new order
     function neworder() {
         //FIXME
-
+        //sets new order number
+        $order_num = $this->orders->highest() + 1;
+        
+        //constructs new order and sets initial values
+        $neworder = $this->orders->create();
+        $neworder->num = $order_num;
+        $neworder->date = date();
+        $neworder->status = 'a';
+        $neworder->total = 0;
+        $this->orders->add($neworder);
+        
         redirect('/order/display_menu/' . $order_num);
     }
 
@@ -30,7 +40,9 @@ class Order extends Application {
         $this->data['pagebody'] = 'show_menu';
         $this->data['order_num'] = $order_num;
         //FIXME
-
+        //added the (formatted total)
+        $this->data['title'] = "Order # ".$order_num ." (".number_format($this->orders->total($order_num), 2).")";
+         
         // Make the columns
         $this->data['meals'] = $this->make_column('m');
         $this->data['drinks'] = $this->make_column('d');
@@ -64,12 +76,15 @@ class Order extends Application {
     // make a menu ordering column
     function make_column($category) {
         //FIXME
-        return $items;
+        //calls the MY_Model.php some function to return db query of items
+        return $this->menu->some('category', $category);
     }
 
     // add an item to an order
     function add($order_num, $item) {
         //FIXME
+        //calls the MY_Model.php some function to add item to db
+        $this->orders->add_item($order_num,$item);
         redirect('/order/display_menu/' . $order_num);
     }
 
@@ -79,10 +94,22 @@ class Order extends Application {
         $this->data['pagebody'] = 'show_order';
         $this->data['order_num'] = $order_num;
         //FIXME
-
+        //calls the orders.php model to calculate total
+        $this->data['total'] = number_format($this->orders->total($order_num), 2);
+        
+        $items = $this->orderitems->group($order_num);
+        foreach($items as $item)
+        {
+            $menuitem = $this->menu->get($item->item);
+            $item->code = $menuitem->name;
+        }
+        $this->data['items'] = $items;
+        //returns active for the css to control the proceed button on checkout page 
+        $this->data['okornot'] = ($this->orders->validate($order_num))? 'active' : 'disabled';
         $this->render();
     }
 
+    // replaced with commit($order_num)
     // proceed with checkout
     function proceed($order_num) {
         //FIXME
@@ -92,7 +119,28 @@ class Order extends Application {
     // cancel the order
     function cancel($order_num) {
         //FIXME
+        //marks the items with status 'x' in db
+        $this->orderitems->delete_some($order_num);
+        $record = $this->orders->get($order_num);
+        $record->status = 'x';
+        $this->orders->update($record);
         redirect('/');
     }
 
+    // replaces proceed($order_num)
+    // proceed with checkout
+    function commit($order_num)
+    {
+        //marks the items with status 'c' in db
+        if((!$this->orders->validate($order_num)))
+        {
+            redirect('/order/display_menu/' . $order_num);
+        }
+        $record = $this->orders->get($order_num);
+        $record->date = date(DATE_ATOM);
+        $record->status = 'c';
+        $record->total = $this->orders->total($order_num);
+        $this->orders->update($record);
+        redirect('/');
+    }
 }

@@ -1,11 +1,12 @@
 #################
 Winter2015 lab 04
+Peter Cha
+A00900269
+Set 4B
 #################
 
-This project is the starter for COMP4711 Lab 4, for the Winter 2015 session.
-
-This webapp is broken. On purpose :) 
-Your job is to fix it, following the directions in lab 04.
+Completed part A of Lab04
+Fixed.  Everything seems to be working.
 
 *******************
 Server Requirements
